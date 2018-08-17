@@ -19,6 +19,10 @@ static unsigned long duration = 10;
 module_param(duration, ulong, 0);
 MODULE_PARM_DESC(duration, "Set locup duration in seconds (default: 10)");
 
+static int hard = 0;
+module_param(hard, int, 0);
+MODULE_PARM_DESC(hard, "Enable hardlockup mode (default: 0)");
+
 MODULE_AUTHOR("Takayuki Nagata <tnagata@redhat.com>");
 MODULE_LICENSE("GPL");
 
@@ -30,9 +34,19 @@ static void doit(void)
 
 	printk(KERN_EMERG "lockup: !!CPU%d WILL BE LOCKING FOR %ld SECONDS!!\n", cpu, duration);
 	while (1) {
+		unsigned long flags;
 		unsigned long now;
+
+		if (hard) {
+			local_irq_save(flags);
+		}
+
 		now = local_clock() >> 30LL;
+
 		if (time_after(now, start + duration)) {
+			if (hard) {
+				local_irq_restore(flags);
+			}
 			break;
 		}
 	}
